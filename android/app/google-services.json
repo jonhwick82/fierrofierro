@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "481455410667",
+    "project_id": "ruso-72591",
+    "storage_bucket": "ruso-72591.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:481455410667:android:f35156263fcf1bd1989dae",
+        "android_client_info": {
+          "package_name": "rusoflutter_1982.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
