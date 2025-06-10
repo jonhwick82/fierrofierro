@@ -6,13 +6,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 import 'dart:io' show InternetAddress, SocketException;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'proyect/pantalla_reservas.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  if (Platform.isAndroid) {
+  if (!kIsWeb && Platform.isAndroid) {
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -20,14 +21,27 @@ void main() async {
   }
   
   try {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: 'AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo',
-        appId: '1:481455410667:android:f35156263fcf1bd1989dae',
-        messagingSenderId: '481455410667',
-        projectId: 'ruso-72591',
-      ),
-    );
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo",
+          authDomain: "ruso-72591.firebaseapp.com",
+          projectId: "ruso-72591",
+          storageBucket: "ruso-72591.appspot.com",
+          messagingSenderId: "481455410667",
+          appId: "1:481455410667:web:XXXXXXXXXXXXX" // Reemplaza con tu appId web
+        ),
+      );
+    } else {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: 'AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo',
+          appId: '1:481455410667:android:f35156263fcf1bd1989dae',
+          messagingSenderId: '481455410667',
+          projectId: 'ruso-72591',
+        ),
+      );
+    }
     print('Firebase inicializado correctamente');
   } catch (e) {
     print('Error al inicializar Firebase: $e');
@@ -109,16 +123,22 @@ class _LoginPageState extends State<LoginPage> {
           'email',
           'profile',
         ],
+        signInOption: SignInOption.standard, // Añadir esta línea
       );
 
+      // Asegurarse de que no hay sesiones activas
       await googleSignIn.signOut();
       await FirebaseAuth.instance.signOut();
 
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      // Manejar el inicio de sesión
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn()
+          .timeout(
+            const Duration(minutes: 1),
+            onTimeout: () => throw TimeoutException('Tiempo de espera agotado'),
+          );
 
       if (googleUser == null) {
-        mostrarError('Inicio de sesión cancelado');
-        return;
+        throw Exception('Inicio de sesión cancelado por el usuario');
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -261,5 +281,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
-

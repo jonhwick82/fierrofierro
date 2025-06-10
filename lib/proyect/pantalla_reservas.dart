@@ -3,16 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/main.dart';
+import 'package:intl/intl.dart';
+
 
 class PantallaReservas extends StatefulWidget {
   final String userEmail;
   final String userName;
 
   const PantallaReservas({
-    Key? key,
+    super.key,
     required this.userEmail,
     required this.userName,
-  }) : super(key: key);
+  });
 
   @override
   State<PantallaReservas> createState() => _PantallaReservasState();
@@ -31,9 +33,34 @@ class _PantallaReservasState extends State<PantallaReservas> {
 
   final List<String> canchas = [
     'Cancha 1 - Fútbol 5',
-    'Cancha 2 - Fútbol 7',
+    'Cancha 2 - Fútbol 8',
     'Cancha 3 - Fútbol 11',
   ];
+
+  late Stream<QuerySnapshot> _reservasStream;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _inicializarStream();
+  }
+
+  void _inicializarStream() {
+    try {
+      _reservasStream = FirebaseFirestore.instance
+          .collection('reservas')
+          .where('userEmail', isEqualTo: widget.userEmail)
+          .orderBy('fecha', descending: true)
+          .snapshots();
+    } catch (e) {
+      setState(() {
+        _error = 'Error al cargar las reservas: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   Future<void> realizarReserva() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -78,6 +105,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
     try {
       final reservaData = {
         'userId': user.uid,
+        'userEmail': user.email, // Agregar el email del usuario
         'fecha': Timestamp.fromDate(fechaAjustada), // Convertir DateTime a Timestamp
         'hora': horaSeleccionada,
         'cancha': canchaSeleccionada,
@@ -212,10 +240,11 @@ class _PantallaReservasState extends State<PantallaReservas> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Card(
+              color: Colors.grey[300], // Añadido color de fondo gris claro
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center, // Cambiado a center
                   children: [
                     Text(
                       '¡Bienvenido, ${widget.userName}!',
@@ -223,6 +252,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center, // Añadido para centrar el texto
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -230,6 +260,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
                       style: const TextStyle(
                         color: Colors.grey,
                       ),
+                      textAlign: TextAlign.center, // Añadido para centrar el email
                     ),
                   ],
                 ),
@@ -237,6 +268,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
             ),
             const SizedBox(height: 24),
             Card(
+              color: Colors.grey[200], // Añadido color de fondo gris claro
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -338,7 +370,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Mis Reservas',
+              'Reservas Realizadas',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -346,37 +378,30 @@ class _PantallaReservasState extends State<PantallaReservas> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('reservas')
-                  .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                // Agregar prints para debug
-                print('Estado de conexión: ${snapshot.connectionState}');
-                print('Tiene error: ${snapshot.hasError}');
-                if (snapshot.hasData) {
-                  print('Número de reservas: ${snapshot.data!.docs.length}');
-                }
-
+              stream: _reservasStream,
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.hasError) {
-                  print('Error: ${snapshot.error}');
-                  return const Text('Error al cargar las reservas');
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final reservas = snapshot.data!.docs;
-
-                if (reservas.isEmpty) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No tienes reservas activas'),
+                  return Center(
+                    child: Text(
+                      'Error al cargar las reservas: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
                     ),
                   );
                 }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text('No tienes reservas realizadas'),
+                  );
+                }
+
+                final reservas = snapshot.data!.docs;
 
                 return Container(
                   height: 300,
@@ -424,7 +449,10 @@ class _PantallaReservasState extends State<PantallaReservas> {
                             ],
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Color.fromARGB(255, 190, 45, 1), // Cambiado de Colors.red a Colors.deepOrange
+                            ),
                             onPressed: () async {
                               // Mostrar diálogo de confirmación
                               final confirmar = await showDialog<bool>(
@@ -467,5 +495,60 @@ class _PantallaReservasState extends State<PantallaReservas> {
         ),
       ),
     );
+  }
+
+  String _formatearFecha(dynamic fecha) {
+    if (fecha == null) return 'Fecha no especificada';
+    if (fecha is Timestamp) {
+      return DateFormat('dd/MM/yyyy').format(fecha.toDate());
+    }
+    return 'Fecha inválida';
+  }
+
+  Future<void> _confirmarCancelacion(BuildContext context, String reservaId) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar cancelación'),
+        content: const Text('¿Estás seguro de que deseas cancelar esta reserva?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sí'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('reservas')
+            .doc(reservaId)
+            .delete();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Reserva cancelada exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al cancelar la reserva: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
