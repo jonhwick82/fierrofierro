@@ -15,6 +15,9 @@ Muestra historial de reservas personales
 Permite cancelar reservas existentes
 Características Técnicas
 
+tambien posee una pantalla de búsqueda que permite filtrar 
+las reservar por dia y tambien por tipo de cancha
+
 Interfaz responsive
 Persistencia de datos con Firebase
 Manejo de estados y validaciones
@@ -32,7 +35,7 @@ Funcionalidades
 - Notificaciones push para recordatorios
 - Calificación de canchas
 
-- Filtros avanzados de búsqueda
+
 - Perfil de usuario personalizable
 
 

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/main.dart';
 import 'package:intl/intl.dart';
+import 'pantalla_busqueda.dart';
 
 
 class PantallaReservas extends StatefulWidget {
@@ -227,6 +228,18 @@ class _PantallaReservasState extends State<PantallaReservas> {
       appBar: AppBar(
         title: const Text('Reserva tu cancha'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PantallaBusqueda(),
+                ),
+              );
+            },
+            tooltip: 'Buscar reservas',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _cerrarSesion,
