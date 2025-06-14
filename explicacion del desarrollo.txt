@@ -1,0 +1,40 @@
+Explicación del Programa
+Funcionamiento Principal
+
+El programa es una aplicación de reserva de canchas de fútbol 
+con las siguientes características:
+
+Autenticación Utiliza Firebase Auth con Google Sign-In
+Pantalla de inicio de sesión con diseño personalizado
+Manejo de estados de conexión a internet
+Sistema de Reservas
+
+Permite seleccionar fecha, hora y tipo de cancha
+Verifica disponibilidad en tiempo real
+Muestra historial de reservas personales
+Permite cancelar reservas existentes
+Características Técnicas
+
+Interfaz responsive
+Persistencia de datos con Firebase
+Manejo de estados y validaciones
+Orientación forzada a vertical en Android
+
+
+=============================================================
+
+
+Próximas mejoras
+
+Funcionalidades
+
+ Sistema de pagos integrado
+- Notificaciones push para recordatorios
+- Calificación de canchas
+
+- Filtros avanzados de búsqueda
+- Perfil de usuario personalizable
+
+
+- Reservas recurrentes
+
