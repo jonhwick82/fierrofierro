@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:io' show Platform;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -13,15 +12,10 @@ import 'proyect/pantalla_reservas.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  if (!kIsWeb && Platform.isAndroid) {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-  }
-  
   try {
-    if (kIsWeb) {
+    if (!kIsWeb) {
+      await Firebase.initializeApp();
+    } else {
       await Firebase.initializeApp(
         options: const FirebaseOptions(
           apiKey: "AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo",
@@ -32,20 +26,10 @@ void main() async {
           appId: "1:481455410667:web:XXXXXXXXXXXXX" // Reemplaza con tu appId web
         ),
       );
-    } else {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: 'AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo',
-          appId: '1:481455410667:android:f35156263fcf1bd1989dae',
-          messagingSenderId: '481455410667',
-          projectId: 'ruso-72591',
-        ),
-      );
     }
     print('Firebase inicializado correctamente');
   } catch (e) {
     print('Error al inicializar Firebase: $e');
-    return;
   }
 
   runApp(const MyApp());
@@ -174,7 +158,6 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         mostrarError('Error al iniciar sesión: $e');
       }
-      print('Error detallado: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -206,6 +189,8 @@ class _LoginPageState extends State<LoginPage> {
           child: Card(
             margin: const EdgeInsets.all(32),
             elevation: 8,
+            
+            // ignore: deprecated_member_use
             color: Colors.white.withOpacity(0.9),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
