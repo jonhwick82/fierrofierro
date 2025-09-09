@@ -53,11 +53,11 @@ class _PantallaBusquedaState extends State<PantallaBusqueda> {
     if (canchaSeleccionada == null) return;
 
     try {
-      // Consulta simplificada para reducir la necesidad de índices complejos
       final QuerySnapshot resultado = await FirebaseFirestore.instance
           .collection('reservas')
           .where('cancha', isEqualTo: canchaSeleccionada)
           .orderBy('fecha')
+          .orderBy('hora')
           .get();
 
       setState(() {
