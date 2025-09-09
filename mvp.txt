@@ -1,13 +1,16 @@
 
-Referencia de 1 usada
 MVP - Aplicación de Reservas de Canchas de Fútbol
+
 Razón
-La aplicación busca resolver el problema de gestión de reservas de canchas de fútbol, permitiendo a los usuarios realizar reservas de manera digital, evitando conflictos de horarios y optimizando el uso de las instalaciones.
+La aplicación busca resolver el problema de gestión de reservas de canchas de fútbol, 
+permitiendo a los usuarios realizar reservas de manera digital, evitando conflictos de 
+horarios, optimizando el uso de las instalaciones, gestionando pagos y generando estadisticas.
 
 Impacto
 Para usuarios: Facilita el proceso de reserva de canchas sin necesidad de llamadas o visitas presenciales
 Para administradores: Mejora la gestión y organización de las reservas
 Para el negocio: Reduce costos operativos y mejora la eficiencia
+
 Alcance
 Funcionalidades Core (MVP)
 Autenticación de Usuarios
@@ -25,28 +28,36 @@ Visualización de Disponibilidad
 Calendario de reservas
 Horarios disponibles
 Estado de las canchas
+
+
 Cronograma de Tareas
-Fase 1: Configuración Inicial (Semana 1)
+
+Fase 1: Configuración Inicial 
  Configuración del proyecto Flutter
  Integración con Firebase
  Configuración de autenticación Google
-Fase 2: Autenticación (Semana 2)
+
+Fase 2: Autenticación 
  Implementación de login con Google
  Pantalla de inicio de sesión
  Manejo de sesiones de usuario
-Fase 3: Desarrollo de Reservas (Semana 3-4)
+
+Fase 3: Desarrollo de Reservas 
  Diseño de base de datos en Firestore
  Pantalla de listado de canchas
  Sistema de reservas
  Validación de disponibilidad
-Fase 4: Gestión de Reservas (Semana 5)
+
+Fase 4: Gestión de Reservas 
  Historial de reservas
  Cancelación de reservas
  Notificaciones básicas
-Fase 5: Testing y Depuración (Semana 6)
+
+Fase 5: Testing y Depuración 
  Pruebas de integración
  Corrección de bugs
  Optimización de rendimiento
+ 
 Entregable Final
 Una aplicación móvil funcional que permite:
 

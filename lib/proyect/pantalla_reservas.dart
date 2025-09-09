@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/main.dart';
-import 'package:intl/intl.dart';
 import 'pantalla_busqueda.dart';
 
 
@@ -39,8 +38,6 @@ class _PantallaReservasState extends State<PantallaReservas> {
   ];
 
   late Stream<QuerySnapshot> _reservasStream;
-  bool _isLoading = true;
-  String? _error;
 
   @override
   void initState() {
@@ -57,8 +54,8 @@ class _PantallaReservasState extends State<PantallaReservas> {
           .snapshots();
     } catch (e) {
       setState(() {
-        _error = 'Error al cargar las reservas: $e';
-        _isLoading = false;
+        // _error = 'Error al cargar las reservas: $e';
+        // _isLoading = false;
       });
     }
   }
@@ -226,7 +223,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reserva tu cancha'),
+        title: Text('Mis Reservas - ${widget.userName}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -234,16 +231,14 @@ class _PantallaReservasState extends State<PantallaReservas> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const PantallaBusqueda(),
+                  builder: (context) => PantallaBusqueda(),
                 ),
               );
             },
-            tooltip: 'Buscar reservas',
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _cerrarSesion,
-            tooltip: 'Cerrar sesión',
           ),
         ],
       ),
@@ -510,58 +505,5 @@ class _PantallaReservasState extends State<PantallaReservas> {
     );
   }
 
-  String _formatearFecha(dynamic fecha) {
-    if (fecha == null) return 'Fecha no especificada';
-    if (fecha is Timestamp) {
-      return DateFormat('dd/MM/yyyy').format(fecha.toDate());
-    }
-    return 'Fecha inválida';
-  }
 
-  Future<void> _confirmarCancelacion(BuildContext context, String reservaId) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar cancelación'),
-        content: const Text('¿Estás seguro de que deseas cancelar esta reserva?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sí'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar == true) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('reservas')
-            .doc(reservaId)
-            .delete();
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Reserva cancelada exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error al cancelar la reserva: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
 }
