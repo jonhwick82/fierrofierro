@@ -32,12 +32,14 @@ Próximas mejoras
 Funcionalidades
 
  Sistema de pagos integrado
+ perfil de usuario en la app: administrador-dueño-usuario
+ que los usuario solo puedan hacer CRUD en los documentos que crearon
+ utilizacion de metodos de pago para la seña y la canchas
+ link a filmaciones de los partidos
+ dueño tiene posibilidad de modificar los montos de seña segun cancha y dia
+ el usuario solo puede realizar la reserva cuando ya abono la seña
 - Notificaciones push para recordatorios
 - Calificación de canchas
-
-
-- Perfil de usuario personalizable
-
-
 - Reservas recurrentes
+logo de espera gif del calentamiento de maradona
 
