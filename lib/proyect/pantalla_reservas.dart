@@ -76,65 +76,26 @@ class _PantallaReservasState extends State<PantallaReservas> {
       return;
     }
 
-    // Ajustar la fecha seleccionada a medianoche para evitar problemas de zona horaria
     final fechaAjustada = DateTime(
       fechaSeleccionada!.year,
       fechaSeleccionada!.month,
       fechaSeleccionada!.day,
     );
 
-    // Verificar disponibilidad antes de crear la reserva
-    final bool disponible = await verificarDisponibilidad(
-      fechaAjustada,
-      horaSeleccionada!,
-      canchaSeleccionada!,
-    );
-
-    if (!disponible) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lo sentimos, este horario ya no está disponible'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     try {
-      final reservaData = {
-        'userId': user.uid,
-        'userEmail': user.email, // Agregar el email del usuario
-        'fecha': Timestamp.fromDate(fechaAjustada), // Convertir DateTime a Timestamp
+      await FirebaseFirestore.instance.collection('reservas').add({
+        'userId': user.uid, // Guardar el UID del usuario
+        'fecha': Timestamp.fromDate(fechaAjustada),
         'hora': horaSeleccionada,
         'cancha': canchaSeleccionada,
-        'estado': 'pendiente',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-
-      await FirebaseFirestore.instance
-          .collection('reservas')
-          .add(reservaData);
-
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('¡Reserva realizada con éxito!'),
-          backgroundColor: Color(0xFF1B5E20),
-        ),
-      );
-
-      setState(() {
-        fechaSeleccionada = null;
-        horaSeleccionada = null;
-        canchaSeleccionada = null;
+        'creadoEn': FieldValue.serverTimestamp(),
       });
-    } catch (e) {
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al realizar la reserva: $e'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Reserva realizada con éxito')),
       );
+    } catch (e) {
+      mostrarError('Error al realizar la reserva: $e');
     }
   }
 
@@ -216,6 +177,17 @@ class _PantallaReservasState extends State<PantallaReservas> {
         builder: (context) => const LoginPage(title: 'Ingreso a Futbol App'),
       ),
       (route) => false,
+    );
+  }
+
+  void mostrarError(String mensaje) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ),
     );
   }
 
