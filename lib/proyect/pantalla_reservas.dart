@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/main.dart';
 import 'pantalla_busqueda.dart';
+import 'pantalla_dashboard.dart';
 
 
 class PantallaReservas extends StatefulWidget {
@@ -197,6 +198,17 @@ class _PantallaReservasState extends State<PantallaReservas> {
       appBar: AppBar(
         title: Text('Mis Reservas - ${widget.userName}'),
         actions: [
+          // TODO: Mostrar este botón solo si el usuario es administrador.
+          IconButton(
+            icon: const Icon(Icons.dashboard),
+            tooltip: 'Dashboard Administrador',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PantallaDashboard()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
