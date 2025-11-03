@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'auth_service.dart';
 ///import 'package:intl/intl.dart';
 
 /// Un modelo simple para agrupar las estadísticas calculadas.
@@ -117,7 +118,24 @@ class _PantallaDashboardState extends State<PantallaDashboard> {
         title: const Text('Dashboard Administrador'),
         backgroundColor: const Color(0xFF1B5E20),
       ),
-      body: FutureBuilder<DashboardStats>(
+      // --- CONTROL DE ACCESO POR ROL ---
+      // Verificamos el rol antes de construir el contenido de la pantalla.
+      body: AuthService().isAdmin
+          ? _buildDashboardContent()
+          : const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Acceso no autorizado. Esta pantalla es solo para administradores.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, color: Colors.red),
+                ),
+              ),
+            ),
+    );
+  }
+  Widget _buildDashboardContent() {
+      return FutureBuilder<DashboardStats>(
         future: _statsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -150,8 +168,7 @@ class _PantallaDashboardState extends State<PantallaDashboard> {
             ),
           );
         },
-      ),
-    );
+      );
   }
 
   /// Widget para el cuadro resumen con métricas clave.

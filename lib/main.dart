@@ -7,7 +7,10 @@ import 'dart:async';
 import 'dart:io' show InternetAddress, SocketException;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'proyect/auth_service.dart';
 import 'proyect/pantalla_reservas.dart';
+import 'pantalla_registro.dart';
 //
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +75,10 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _hasInternetConnection = true;
+  // Controladores para el login con email/password
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   Future<void> _checkInternetConnection() async {
     try {
@@ -92,6 +99,54 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _checkInternetConnection();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signInWithEmail() async {
+    if (_isLoading || !_formKey.currentState!.validate()) return;
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      final User? user = userCredential.user;
+      if (user != null) {
+        // La lógica para obtener el rol es la misma que con Google
+        await _fetchUserRoleAndNavigate(user);
+      } else {
+        throw Exception('No se pudo obtener información del usuario');
+      }
+
+    } on FirebaseAuthException catch (e) {
+      String message = 'Error al iniciar sesión.';
+      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        message = 'Correo o contraseña incorrectos.';
+      }
+      mostrarError(message);
+    } catch (e) {
+      mostrarError('Ocurrió un error inesperado: $e');
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
+    }
+  }
+
+  void _navigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PantallaRegistro()),
+    );
   }
   
   Future<void> _signInWithGoogle() async {
@@ -137,21 +192,11 @@ class _LoginPageState extends State<LoginPage> {
       
       final User? user = userCredential.user;
       
-      if (user == null) {
-        throw Exception('No se pudo obtener información del usuario');
+      if (user != null) {
+        await _fetchUserRoleAndNavigate(user);
+      } else {
+         throw Exception('No se pudo obtener información del usuario');
       }
-
-      if (!mounted) return;
-
-      await Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PantallaReservas(
-            userEmail: user.email ?? '',
-            userName: user.displayName ?? 'Jugador',
-          ),
-        ),
-      );
     } catch (e) {
       if (e.toString().contains('Selección de cuenta cancelada')) {
         mostrarError('Se canceló la selección de cuenta');
@@ -165,6 +210,54 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     }
+  }
+
+  /// Método reutilizable para obtener el rol del usuario y navegar.
+  Future<void> _fetchUserRoleAndNavigate(User user) async {
+    // 1. Buscar el usuario en la colección 'usuarios' por su UID.
+    final userDocRef = FirebaseFirestore.instance.collection('usuarios').doc(user.uid);
+    final userDoc = await userDocRef.get();
+
+    String userRole;
+    String userName;
+
+    // 2. Si el usuario no existe en Firestore (caso raro, ej. login con Google por 1ra vez), lo creamos.
+    if (!userDoc.exists) {
+      // --- LÓGICA DE ADMINISTRADOR POR DEFECTO ---
+      // Si el email del nuevo usuario es el del administrador designado, se le asigna el rol 'admin'.
+      if (user.email == 'reichelj82@gmail.com') {
+        userRole = 'admin';
+      } else {
+        userRole = 'usuario'; // Rol por defecto para otros usuarios
+      }
+      userName = user.displayName ?? 'Jugador';
+      await userDocRef.set({
+        'email': user.email,
+        'displayName': userName,
+        'rol': userRole,
+        'creadoEn': FieldValue.serverTimestamp(),
+      });
+    } else {
+      // 3. Si el usuario ya existe, obtenemos sus datos.
+      // Verificamos si es el admin designado para asegurar que siempre tenga el rol correcto.
+      if (user.email == 'reichelj82@gmail.com') {
+        userRole = 'admin';
+      } else {
+        userRole = userDoc.data()?['rol'] ?? 'usuario';
+      }
+      userName = userDoc.data()?['displayName'] ?? user.displayName ?? 'Jugador';
+    }
+
+    // 4. Guardar el usuario y su rol en nuestro AuthService.
+    final appUser = AppUser(uid: user.uid, email: user.email ?? '', name: userName, role: userRole);
+    AuthService().setUser(appUser);
+
+    if (!mounted) return;
+
+    await Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const PantallaReservas()),
+    );
   }
 
   void mostrarError(String mensaje) {
@@ -192,7 +285,9 @@ class _LoginPageState extends State<LoginPage> {
             
             // ignore: deprecated_member_use
             color: Colors.white.withOpacity(0.9),
-            child: Padding(
+            child: Form(
+              key: _formKey,
+              child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -220,7 +315,23 @@ class _LoginPageState extends State<LoginPage> {
                       color: Colors.grey,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Correo Electrónico', prefixIcon: Icon(Icons.email)),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) => value!.isEmpty ? 'Ingresa tu correo' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
+                    obscureText: true,
+                    validator: (value) => value!.isEmpty ? 'Ingresa tu contraseña' : null,
+                  ),
+                  const SizedBox(height: 20),
+
+
                   if (!_hasInternetConnection)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
@@ -232,33 +343,45 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
+                  ElevatedButton(
+                    onPressed: _isLoading || !_hasInternetConnection ? null : _signInWithEmail,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B5E20),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Iniciar Sesión'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text("o"),
+                  const SizedBox(height: 12),
+
+
                   ElevatedButton.icon(
                     onPressed: _isLoading || !_hasInternetConnection ? null : _signInWithGoogle,
-                    icon: _isLoading 
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B5E20)),
-                          ),
-                        )
-                      : const Icon(Icons.sports),
+                    icon: const Icon(Icons.sports), // Ícono de Google (puedes cambiarlo)
                     label: Text(
                       _isLoading ? 'Ingresando...' : 'Ingresar con Google',
                       style: const TextStyle(fontSize: 16),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B5E20),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
+                        side: const BorderSide(color: Colors.grey),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: _isLoading ? null : _navigateToRegister,
+                    child: const Text('¿No tienes una cuenta? Regístrate aquí'),
+                  )
                 ],
               ),
+            ),
             ),
           ),
         ),

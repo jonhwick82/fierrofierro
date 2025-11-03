@@ -4,17 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/main.dart';
 import 'pantalla_busqueda.dart';
+import 'auth_service.dart';
 import 'pantalla_dashboard.dart';
 
 
 class PantallaReservas extends StatefulWidget {
-  final String userEmail;
-  final String userName;
-
   const PantallaReservas({
     super.key,
-    required this.userEmail,
-    required this.userName,
   });
 
   @override
@@ -39,18 +35,22 @@ class _PantallaReservasState extends State<PantallaReservas> {
   ];
 
   late Stream<QuerySnapshot> _reservasStream;
+  final AuthService _authService = AuthService();
+  AppUser? _currentUser;
 
   @override
   void initState() {
     super.initState();
+    _currentUser = _authService.currentUser;
     _inicializarStream();
   }
 
   void _inicializarStream() {
+    if (_currentUser == null) return;
     try {
       _reservasStream = FirebaseFirestore.instance
           .collection('reservas')
-          .where('userEmail', isEqualTo: widget.userEmail)
+          .where('userEmail', isEqualTo: _currentUser!.email)
           .orderBy('fecha', descending: true)
           .snapshots();
     } catch (e) {
@@ -62,7 +62,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
   }
 
   Future<void> realizarReserva() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Debes estar autenticado para realizar una reserva')),
@@ -87,6 +87,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
       await FirebaseFirestore.instance.collection('reservas').add({
         'userId': user.uid, // Guardar el UID del usuario
         'fecha': Timestamp.fromDate(fechaAjustada),
+        'userEmail': user.email, // Guardar el email para búsquedas
         'hora': horaSeleccionada,
         'cancha': canchaSeleccionada,
         'creadoEn': FieldValue.serverTimestamp(),
@@ -196,19 +197,21 @@ class _PantallaReservasState extends State<PantallaReservas> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mis Reservas - ${widget.userName}'),
+        title: Text('Mis Reservas - ${_currentUser?.name ?? 'Usuario'}'),
         actions: [
-          // TODO: Mostrar este botón solo si el usuario es administrador.
-          IconButton(
-            icon: const Icon(Icons.dashboard),
-            tooltip: 'Dashboard Administrador',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PantallaDashboard()),
-              );
-            },
-          ),
+          // --- CONTROL DE ACCESO POR ROL ---
+          // Mostrar el botón del Dashboard solo si el usuario es 'admin'.
+          if (_authService.isAdmin)
+            IconButton(
+              icon: const Icon(Icons.dashboard),
+              tooltip: 'Dashboard Administrador',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PantallaDashboard()),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
@@ -239,7 +242,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
                   crossAxisAlignment: CrossAxisAlignment.center, // Cambiado a center
                   children: [
                     Text(
-                      '¡Bienvenido, ${widget.userName}!',
+                      '¡Bienvenido, ${_currentUser?.name ?? 'Jugador'}!',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -248,7 +251,7 @@ class _PantallaReservasState extends State<PantallaReservas> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      widget.userEmail,
+                      _currentUser?.email ?? '',
                       style: const TextStyle(
                         color: Colors.grey,
                       ),
