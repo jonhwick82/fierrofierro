@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 import 'dart:io' show InternetAddress, SocketException;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:audioplayers/audioplayers.dart'; // 1. Importar el paquete de audio
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'proyect/auth_service.dart';
@@ -80,6 +81,9 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  // 2. Crear una instancia del reproductor de audio
+  final _audioPlayer = AudioPlayer();
+
   Future<void> _checkInternetConnection() async {
     try {
       final result = await InternetAddress.lookup('google.com');
@@ -95,16 +99,26 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // 3. Función para iniciar la música
+  Future<void> _playBackgroundMusic() async {
+    // Configura el reproductor para que la música se repita en bucle
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    // Reproduce el archivo desde los assets
+    await _audioPlayer.play(AssetSource('OPUS.mp3'));
+  }
+
   @override
   void initState() {
     super.initState();
     _checkInternetConnection();
+    _playBackgroundMusic(); // Inicia la música cuando la pantalla se carga
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _audioPlayer.dispose(); // 4. Detiene y libera el reproductor al salir de la pantalla
     super.dispose();
   }
 
@@ -294,12 +308,10 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.sports_soccer,
-                      size: 64,
-                      color: Color(0xFF1B5E20),
+                    Image.asset(
+                      'assets/cdam.webp', // Ruta a tu animación
+                      height: 120, // Puedes ajustar el tamaño
                     ),
-                    const SizedBox(height: 24),
                     const Text(
                       '¡Bienvenido a Futbol App!',
                       style: TextStyle(
