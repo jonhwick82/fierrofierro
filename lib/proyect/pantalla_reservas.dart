@@ -6,6 +6,7 @@ import 'package:flutter_application_1/main.dart';
 import 'pantalla_busqueda.dart';
 import 'auth_service.dart';
 import 'pantalla_dashboard.dart';
+import 'pantalla_pago.dart';
 
 
 class PantallaReservas extends StatefulWidget {
@@ -61,44 +62,27 @@ class _PantallaReservasState extends State<PantallaReservas> {
     }
   }
 
-  Future<void> realizarReserva() async {
+  void _navegarAPago() {
     final user = _currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes estar autenticado para realizar una reserva')),
+        const SnackBar(content: Text('Debes estar autenticado para reservar')),
       );
       return;
     }
 
     if (fechaSeleccionada == null || horaSeleccionada == null || canchaSeleccionada == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor completa todos los campos')),
+        const SnackBar(content: Text('Por favor, completa todos los campos para continuar')),
       );
       return;
     }
 
-    final fechaAjustada = DateTime(
-      fechaSeleccionada!.year,
-      fechaSeleccionada!.month,
-      fechaSeleccionada!.day,
-    );
-
-    try {
-      await FirebaseFirestore.instance.collection('reservas').add({
-        'userId': user.uid, // Guardar el UID del usuario
-        'fecha': Timestamp.fromDate(fechaAjustada),
-        'userEmail': user.email, // Guardar el email para búsquedas
-        'hora': horaSeleccionada,
-        'cancha': canchaSeleccionada,
-        'creadoEn': FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reserva realizada con éxito')),
-      );
-    } catch (e) {
-      mostrarError('Error al realizar la reserva: $e');
-    }
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaPago(
+      fecha: fechaSeleccionada!,
+      hora: horaSeleccionada!,
+      cancha: canchaSeleccionada!,
+    )));
   }
 
   Future<bool> verificarDisponibilidad(DateTime fecha, String hora, String cancha) async {
@@ -350,9 +334,9 @@ class _PantallaReservasState extends State<PantallaReservas> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
-                      onPressed: realizarReserva,
+                      onPressed: _navegarAPago,
                       icon: const Icon(Icons.sports_soccer),
-                      label: const Text('Realizar Reserva'),
+                      label: const Text('Continuar para Pagar Seña'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1B5E20),
                         foregroundColor: Colors.white,

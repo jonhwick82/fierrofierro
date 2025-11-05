@@ -61,7 +61,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
         final appUser = AppUser(
           uid: user.uid,
           email: user.email!,
-          name: user.displayName!,
+          name: _nameController.text.trim(), // Usamos el nombre del controlador que ya tenemos
           role: _selectedRole,
         );
         AuthService().setUser(appUser);

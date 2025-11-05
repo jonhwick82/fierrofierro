@@ -285,103 +285,105 @@ class _LoginPageState extends State<LoginPage> {
             
             // ignore: deprecated_member_use
             color: Colors.white.withOpacity(0.9),
-            child: Form(
-              key: _formKey,
-              child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.sports_soccer,
-                    size: 64,
-                    color: Color(0xFF1B5E20),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '¡Bienvenido a Futbol App!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+            child: SingleChildScrollView( // <--- WIDGET AÑADIDO PARA SOLUCIONAR EL OVERFLOW
+              child: Form(
+                key: _formKey,
+                child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.sports_soccer,
+                      size: 64,
                       color: Color(0xFF1B5E20),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Reserva tu cancha de fútbol',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                    const SizedBox(height: 24),
+                    const Text(
+                      '¡Bienvenido a Futbol App!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1B5E20),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Correo Electrónico', prefixIcon: Icon(Icons.email)),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) => value!.isEmpty ? 'Ingresa tu correo' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
-                    obscureText: true,
-                    validator: (value) => value!.isEmpty ? 'Ingresa tu contraseña' : null,
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Reserva tu cancha de fútbol',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(labelText: 'Correo Electrónico', prefixIcon: Icon(Icons.email)),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) => value!.isEmpty ? 'Ingresa tu correo' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
+                      obscureText: true,
+                      validator: (value) => value!.isEmpty ? 'Ingresa tu contraseña' : null,
+                    ),
+                    const SizedBox(height: 20),
 
 
-                  if (!_hasInternetConnection)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Text(
-                        'Sin conexión a Internet',
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.bold,
+                    if (!_hasInternetConnection)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          'Sin conexión a Internet',
+                          style: TextStyle(
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ElevatedButton(
+                      onPressed: _isLoading || !_hasInternetConnection ? null : _signInWithEmail,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1B5E20),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Iniciar Sesión'),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text("o"),
+                    const SizedBox(height: 12),
+
+
+                    ElevatedButton.icon(
+                      onPressed: _isLoading || !_hasInternetConnection ? null : _signInWithGoogle,
+                      icon: const Icon(Icons.sports), // Ícono de Google (puedes cambiarlo)
+                      label: Text(
+                        _isLoading ? 'Ingresando...' : 'Ingresar con Google',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: Colors.grey),
                         ),
                       ),
                     ),
-                  ElevatedButton(
-                    onPressed: _isLoading || !_hasInternetConnection ? null : _signInWithEmail,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B5E20),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Iniciar Sesión'),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text("o"),
-                  const SizedBox(height: 12),
-
-
-                  ElevatedButton.icon(
-                    onPressed: _isLoading || !_hasInternetConnection ? null : _signInWithGoogle,
-                    icon: const Icon(Icons.sports), // Ícono de Google (puedes cambiarlo)
-                    label: Text(
-                      _isLoading ? 'Ingresando...' : 'Ingresar con Google',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black87,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: _isLoading ? null : _navigateToRegister,
-                    child: const Text('¿No tienes una cuenta? Regístrate aquí'),
-                  )
-                ],
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: _isLoading ? null : _navigateToRegister,
+                      child: const Text('¿No tienes una cuenta? Regístrate aquí'),
+                    )
+                  ],
+                ),
               ),
-            ),
+              ),
             ),
           ),
         ),
