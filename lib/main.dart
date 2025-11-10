@@ -27,7 +27,7 @@ void main() async {
           projectId: "ruso-72591",
           storageBucket: "ruso-72591.appspot.com",
           messagingSenderId: "481455410667",
-          appId: "1:481455410667:web:XXXXXXXXXXXXX" // Reemplaza con tu appId web
+          appId: "1:481455410667:android:f35156263fcf1bd1989dae" // <-- PEGA AQUÍ TU APP ID REAL OBTENIDO DE FIREBASE
         ),
       );
     }
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Futbol App - Reserva tu cancha',
+      title: 'BIG CANCHAS - Reserva tu cancha',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1B5E20),

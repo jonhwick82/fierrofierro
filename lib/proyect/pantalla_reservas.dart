@@ -85,6 +85,47 @@ class _PantallaReservasState extends State<PantallaReservas> {
     )));
   }
 
+  Future<void> _crearReservaDirecta() async {
+    final user = _currentUser;
+    if (user == null) {
+      mostrarError('Debes estar autenticado para reservar');
+      return;
+    }
+
+    if (fechaSeleccionada == null || horaSeleccionada == null || canchaSeleccionada == null) {
+      mostrarError('Por favor, completa todos los campos para continuar');
+      return;
+    }
+
+    // Verificar disponibilidad antes de guardar
+    final bool disponible = await verificarDisponibilidad(fechaSeleccionada!, horaSeleccionada!, canchaSeleccionada!);
+    if (!disponible && mounted) {
+      mostrarError('El horario seleccionado para esta cancha ya no está disponible.');
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('reservas').add({
+        'userId': user.uid,
+        'userEmail': user.email,
+        'fecha': Timestamp.fromDate(fechaSeleccionada!),
+        'hora': horaSeleccionada!,
+        'cancha': canchaSeleccionada!,
+        'creadoEn': FieldValue.serverTimestamp(),
+        'seña_abonada': false, // Admin/Empleado no pagan seña por este medio
+        'monto_seña': 0,
+        'creadoPorRol': _authService.currentUser?.role ?? 'desconocido',
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reserva creada exitosamente'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      mostrarError('Error al crear la reserva: $e');
+    }
+  }
+
   Future<bool> verificarDisponibilidad(DateTime fecha, String hora, String cancha) async {
     try {
       final QuerySnapshot resultado = await FirebaseFirestore.instance
@@ -333,16 +374,20 @@ class _PantallaReservasState extends State<PantallaReservas> {
                       },
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _navegarAPago,
-                      icon: const Icon(Icons.sports_soccer),
-                      label: const Text('Continuar para Pagar Seña'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1B5E20),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                    if (_authService.isUser) // Botón para rol 'usuario'
+                      ElevatedButton.icon(
+                        onPressed: _navegarAPago,
+                        icon: const Icon(Icons.payment),
+                        label: const Text('Continuar para Pagar Seña'),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
+                      )
+                    else // Botón para roles 'admin' y 'empleado'
+                      ElevatedButton.icon(
+                        onPressed: _crearReservaDirecta,
+                        icon: const Icon(Icons.add_task),
+                        label: const Text('Realizar Reserva Directamente'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade800, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
                       ),
-                    ),
                   ],
                 ),
               ),

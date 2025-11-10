@@ -1,0 +1,5 @@
+node_modules/
+*.local
+
+# Ignorar archivos de variables de entorno para no exponer claves secretas.
+.env.*

@@ -1,10 +1,11 @@
-import 'dart:math';
+import 'dart:convert'; // Necesario para decodificar la respuesta del backend.
+import 'package:http/http.dart' as http; // Para hacer la llamada al backend.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import 'auth_service.dart';
+import 'pantalla_checkout_mp.dart'; // Importamos la nueva pantalla para el WebView.
 
 class PantallaPago extends StatefulWidget {
   final DateTime fecha;
@@ -28,35 +29,68 @@ class _PantallaPagoState extends State<PantallaPago> {
   // --- PRECIOS Y SEÑA (CONFIGURACIÓN) ---
   // En una app real, estos valores vendrían de una base de datos o configuración remota.
   static const Map<String, double> _preciosCanchas = {
-    'Cancha 1 - Fútbol 5': 5000.0,
-    'Cancha 2 - Fútbol 8': 8000.0,
-    'Cancha 3 - Fútbol 11': 12000.0,
+    'Cancha 1 - Fútbol 5': 500.0,
+    'Cancha 2 - Fútbol 8': 800.0,
+    'Cancha 3 - Fútbol 11': 1200.0,
   };
   static const double _porcentajeSena = 0.10; // 10%
 
   double get _montoTotal => _preciosCanchas[widget.cancha] ?? 0.0;
   double get _montoSena => _montoTotal * _porcentajeSena;
 
-  /// Simula una llamada a un proveedor de pagos como Mercado Pago.
-  /// En un futuro, aquí iría la integración real con el SDK de Mercado Pago.
-  /// Devuelve `true` si el pago es exitoso, `false` si es rechazado.
-  Future<bool> _simularPagoMercadoPago() async {
+  /// **PASO CLAVE: Crear la preferencia de pago en tu backend.**
+  /// Esta función llama a un backend (que tú crearías, por ej. con Firebase Functions)
+  /// para generar la preferencia de pago en Mercado Pago de forma segura.
+  /// Devuelve la URL de checkout (`init_point`).
+  Future<Map<String, dynamic>?> _crearPreferenciaMercadoPago() async {
     setState(() {
       _isLoading = true;
     });
 
-    // Simulamos una demora de red de 2 a 4 segundos.
-    await Future.delayed(Duration(seconds: 2 + Random().nextInt(2)));
+    // --- LLAMADA REAL AL BACKEND (FIREBASE FUNCTION) ---
 
-    // Simulamos una respuesta aleatoria (75% de éxito).
-    final esExitoso = Random().nextDouble() < 0.75;
+    // IMPORTANTE: Reemplaza esta URL por la URL de tu Firebase Function que obtuviste al desplegar.
+    // ¡CORRECCIÓN! Esta es la URL que te dio la terminal al desplegar la función.
+    // Pega aquí la URL que copiaste en el paso anterior.
+    final url = Uri.parse('https://us-central1-ruso-72591.cloudfunctions.net/createPreference');
 
-    // En un caso real, aquí recibirías un ID de transacción del proveedor de pago.
-    return esExitoso;
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'title': 'Seña reserva: ${widget.cancha}',
+          'description': 'Reserva para el ${DateFormat('dd/MM/yyyy').format(widget.fecha)} a las ${widget.hora}',
+          'quantity': 1,
+          'unitPrice': _montoSena,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // El backend devuelve el 'init_point', 'sandbox_init_point' y el 'id'.
+        // Capturamos todos los datos que nos envía el backend.
+        return data;
+      } else {
+        // Si el backend falla, muestra un error.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error del servidor: ${response.body}')),
+        );
+        return null;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error de conexión al crear el pago: $e')),
+      );
+      return null;
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+
   }
 
   /// Guarda la reserva en Firestore después de que el pago fue confirmado.
-  Future<void> _guardarReservaConfirmada() async {
+  Future<void> _guardarReservaConfirmada(String idPreferencia) async {
     final user = AuthService().currentUser;
     if (user == null) {
       // Esto no debería pasar si el usuario ya está en la app, pero es una buena práctica verificar.
@@ -77,7 +111,7 @@ class _PantallaPagoState extends State<PantallaPago> {
         // --- NUEVOS CAMPOS DE PAGO ---
         'seña_abonada': true,
         'monto_seña': _montoSena,
-        'id_transaccion': 'sim_${DateTime.now().millisecondsSinceEpoch}', // ID de transacción simulado
+        'id_preferencia_mp': idPreferencia, // ID de la preferencia real de Mercado Pago
       });
 
       // Muestra diálogo de éxito y navega hacia atrás.
@@ -109,28 +143,37 @@ class _PantallaPagoState extends State<PantallaPago> {
   }
 
   void _iniciarProcesoDePago() async {
-    final pagoExitoso = await _simularPagoMercadoPago();
+    // 1. Llama a tu backend para obtener la URL de pago.
+    final Map<String, dynamic>? preferencia = await _crearPreferenciaMercadoPago();
 
-    if (pagoExitoso) {
-      await _guardarReservaConfirmada();
-    } else {
-      // Muestra diálogo de error.
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Pago Rechazado'),
-          content: const Text('No se pudo procesar el pago. Por favor, intenta de nuevo.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
+    if (preferencia != null && mounted) {
+      final String initPoint = preferencia['init_point']; // Para pagos reales, siempre usamos init_point
+      final String preferenciaId = preferencia['id'];
+
+      // 2. Navega a la pantalla del WebView para que el usuario pague.
+      final resultadoPago = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PantallaCheckoutMP(checkoutUrl: initPoint),
         ),
       );
+      // 3. Procesa el resultado del pago.
+      if (resultadoPago == 'approved') {
+        await _guardarReservaConfirmada(preferenciaId);
+      } else if (resultadoPago == 'pending') {
+        // Opcional: Manejar pagos pendientes.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El pago está pendiente de confirmación.')),
+        );
+        Navigator.of(context).pop();
+      } else {
+        // Manejar pago fallido o cancelado.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El pago fue rechazado o cancelado.')),
+        );
+      }
     }
-
+    // Si checkoutUrl es null, el error ya se mostró en _crearPreferenciaMercadoPago.
     if (mounted) {
       setState(() {
         _isLoading = false;
