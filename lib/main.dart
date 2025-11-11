@@ -4,9 +4,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
-import 'dart:io' show InternetAddress, SocketException;
+import 'dart:io' show InternetAddress, SocketException, File;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:audioplayers/audioplayers.dart'; // 1. Importar el paquete de audio
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'proyect/auth_service.dart';
@@ -14,22 +15,46 @@ import 'proyect/pantalla_reservas.dart';
 import 'pantalla_registro.dart';
 //
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); // mover esto antes de cargar el .env
+
+  // Intentar cargar el .env desde varias ubicaciones comunes
+  final List<String> posiblesRutas = [
+    'functions/.env.ruso-72591',
+    '.env.ruso-72591',
+    '.env',
+  ];
+  bool cargado = false;
+  for (final ruta in posiblesRutas) {
+    try {
+      // Verifica existencia rápida antes de intentar cargar (evita excepción larga)
+      if (await File(ruta).exists()) {
+        await dotenv.load(fileName: ruta);
+        cargado = true;
+        print('Cargado .env desde: $ruta');
+        break;
+      }
+    } catch (_) {
+      // continue
+    }
+  }
+  if (!cargado) {
+    print('No se encontró el archivo .env en las rutas comprobadas: $posiblesRutas');
+  }
   
   try {
     if (!kIsWeb) {
       await Firebase.initializeApp();
     } else {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyC_26YE7HovI7bdqcWO4ixcVgth9gzzNNo",
-          authDomain: "ruso-72591.firebaseapp.com",
-          projectId: "ruso-72591",
-          storageBucket: "ruso-72591.appspot.com",
-          messagingSenderId: "481455410667",
-          appId: "1:481455410667:android:f35156263fcf1bd1989dae" // <-- PEGA AQUÍ TU APP ID REAL OBTENIDO DE FIREBASE
-        ),
+      final options = FirebaseOptions(
+        apiKey: dotenv.env['FIREBASE_API_KEY'] ?? (throw Exception('FIREBASE_API_KEY no está definido')),
+        authDomain: dotenv.env['FIREBASE_AUTH_DOMAIN'] ?? '',
+        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? (throw Exception('FIREBASE_PROJECT_ID no está definido')),
+        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '',
+        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
+        appId: dotenv.env['FIREBASE_APP_ID'] ?? (throw Exception('FIREBASE_APP_ID no está definido')),
       );
+
+      await Firebase.initializeApp(options: options);
     }
     print('Firebase inicializado correctamente');
   } catch (e) {
@@ -112,6 +137,11 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     _checkInternetConnection();
     _playBackgroundMusic(); // Inicia la música cuando la pantalla se carga
+
+    // Precachear el sticker animado para evitar parpadeos al empezar a reproducirlo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      precacheImage(const AssetImage('assets/cdam.webp'), context);
+    });
   }
 
   @override
@@ -289,18 +319,15 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1B5E20), // Color verde oscuro de fondo
-        ),
-        child: Center(
-          child: Card(
-            margin: const EdgeInsets.all(32),
-            elevation: 8,
-            
-            // ignore: deprecated_member_use
-            color: Colors.white.withOpacity(0.9),
-            child: SingleChildScrollView( // <--- WIDGET AÑADIDO PARA SOLUCIONAR EL OVERFLOW
-              child: Form(
+        // Igualar el fondo al color blanco del sticker para que no se note el recuadro
+        color: Colors.white,
+         child: Center(
+           child: Card(
+             margin: const EdgeInsets.all(32),
+            elevation: 0, // opcional: 0 quita la sombra del recuadro
+            color: Colors.transparent, // hace que la Card no dibuje un fondo blanco
+             child: SingleChildScrollView( // <--- WIDGET AÑADIDO PARA SOLUCIONAR EL OVERFLOW
+               child: Form(
                 key: _formKey,
                 child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -308,12 +335,18 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      'assets/cdam.webp', // Ruta a tu animación
-                      height: 120, // Puedes ajustar el tamaño
+                    // Fondo blanco explícito y gaplessPlayback evita parpadeos entre frames
+                    Container(
+                      color: Colors.white,
+                      child: Image.asset(
+                        'assets/cdam.webp',
+                        height: 120,
+                        fit: BoxFit.contain,
+                        gaplessPlayback: true,
+                      ),
                     ),
                     const Text(
-                      '¡Bienvenido a Futbol App!',
+                      '¡BIG CANCHAS!',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
